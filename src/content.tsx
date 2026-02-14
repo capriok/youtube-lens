@@ -39,10 +39,6 @@ function isChannelPage(): boolean {
   )
 }
 
-function isHomePage(): boolean {
-  return location.pathname === "/"
-}
-
 function getChannelPageUrl(): string {
   // Extract the base channel URL from the current pathname
   const match = location.pathname.match(/^(\/@[^/]+|\/channel\/[^/]+|\/c\/[^/]+)/)
@@ -396,7 +392,7 @@ function queryAllCards(): Element[] {
 }
 
 function applyFilter(): void {
-  if (!isSubscriptionsFeed() && !isHomePage()) return
+  if (!isSubscriptionsFeed()) return
   const cards = queryAllCards()
   cards.forEach((card) => {
     const channelUrl = card.getAttribute(CHANNEL_URL_MARK)
@@ -481,7 +477,7 @@ function scanAndInject(): void {
     addTagButtonToChannelHeader()
   }
 
-  if (!isSubscriptionsFeed() && !isHomePage()) return
+  if (!isSubscriptionsFeed()) return
 
   for (const card of queryAllCards()) addTagButtonToCard(card)
 
@@ -497,7 +493,7 @@ function observeFeed(): void {
 
 function ensureAppOnSubscriptions(): void {
   const host = document.getElementById(ROOT_ID)
-  const shouldShow = isSubscriptionsFeed() || isChannelPage() || isHomePage()
+  const shouldShow = isSubscriptionsFeed() || isChannelPage()
   if (shouldShow) {
     const hostNodes = ensureHost()
     const mount = hostNodes.shadow.querySelector("div")
