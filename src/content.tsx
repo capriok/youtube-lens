@@ -39,6 +39,10 @@ function isChannelPage(): boolean {
   )
 }
 
+function isHomePage(): boolean {
+  return location.pathname === "/"
+}
+
 function getChannelPageUrl(): string {
   // Extract the base channel URL from the current pathname
   const match = location.pathname.match(/^(\/@[^/]+|\/channel\/[^/]+|\/c\/[^/]+)/)
@@ -96,30 +100,64 @@ function renderApp(hostNodes: HostNodes): void {
 }
 
 function isChannelUrl(href: string): boolean {
-  return href.includes("/channel/") || href.includes("/@") || href.includes("/c/")
+  if (!href) return false
+  try {
+    const url = new URL(href, window.location.origin)
+    const path = url.pathname
+    return path.includes("/channel/") || path.startsWith("/@") || path.startsWith("/c/")
+  } catch {
+    return href.includes("/channel/") || href.includes("/@") || href.includes("/c/")
+  }
 }
 
-function findChannelLink(card: Element): HTMLAnchorElement | null {
+function findAllChannelLinks(card: Element): HTMLAnchorElement[] {
+  const foundLinks = new Map<string, HTMLAnchorElement>() // Use Map to dedupe by href
+
+  // First priority: avatar link (most reliable, works for collabs too)
+  const avatarLink = card.querySelector<HTMLAnchorElement>("a#avatar-link")
+  if (avatarLink?.href && isChannelUrl(avatarLink.href)) {
+    foundLinks.set(avatarLink.href, avatarLink)
+  }
+
+  // Second priority: specific selectors
   const selectors = [
     "ytd-channel-name a[href*='/channel/'], ytd-channel-name a[href*='/@'], ytd-channel-name a[href*='/c/']",
     "ytd-video-meta-block a[href*='/channel/'], ytd-video-meta-block a[href*='/@'], ytd-video-meta-block a[href*='/c/']",
     "ytd-video-owner-renderer a[href*='/channel/'], ytd-video-owner-renderer a[href*='/@']",
-    "a#avatar-link",
-    "a.yt-simple-endpoint.yt-formatted-string[href*='/channel/'], a.yt-simple-endpoint.yt-formatted-string[href*='/@']",
     "#byline-container a[href*='/channel/'], #byline-container a[href*='/@']",
     "#metadata-line a[href*='/channel/'], #metadata-line a[href*='/@']",
+    // Joint/collaborative videos - multiple channels shown together
+    "#text-container a[href*='/channel/'], #text-container a[href*='/@']",
+    "yt-formatted-string#text a[href*='/channel/'], yt-formatted-string#text a[href*='/@']",
+    "#channel-info a[href*='/channel/'], #channel-info a[href*='/@']",
   ]
+
   for (const sel of selectors) {
-    const link = card.querySelector<HTMLAnchorElement>(sel)
-    if (link?.href && isChannelUrl(link.href)) return link
+    const links = card.querySelectorAll<HTMLAnchorElement>(sel)
+    links.forEach((link) => {
+      if (link.href && isChannelUrl(link.href) && !link.closest("ytd-menu-renderer")) {
+        foundLinks.set(link.href, link)
+      }
+    })
   }
-  // Fallback: any channel link in card, excluding three-dot menu
-  const allLinks = Array.from(card.querySelectorAll<HTMLAnchorElement>("a[href]"))
-  for (const a of allLinks) {
-    if (a.closest("ytd-menu-renderer")) continue
-    if (isChannelUrl(a.href)) return a
+
+  // Fallback: any channel link in the card
+  if (foundLinks.size === 0) {
+    const allLinks = Array.from(card.querySelectorAll<HTMLAnchorElement>("a[href]"))
+    for (const a of allLinks) {
+      if (a.closest("ytd-menu-renderer")) continue
+      if (isChannelUrl(a.href)) {
+        foundLinks.set(a.href, a)
+      }
+    }
   }
-  return null
+
+  return Array.from(foundLinks.values())
+}
+
+function findChannelLink(card: Element): HTMLAnchorElement | null {
+  const links = findAllChannelLinks(card)
+  return links.length > 0 ? links[0] : null
 }
 
 function dispatchAssign(channelUrl: string, channelName: string) {
@@ -220,7 +258,18 @@ function addTagButtonToChannelHeader(): void {
 
 function addTagButtonToCard(card: Element): void {
   const link = findChannelLink(card)
-  if (!link) return
+  if (!link) {
+    // Debug: log cards without channel links
+    const allAnchors = card.querySelectorAll("a[href]")
+    console.log("[YTX Debug] Card without channel link:", {
+      card: card.tagName,
+      anchorCount: allAnchors.length,
+      anchors: Array.from(allAnchors)
+        .slice(0, 5)
+        .map((a) => (a as HTMLAnchorElement).href),
+    })
+    return
+  }
   card.setAttribute(CHANNEL_URL_MARK, link.href)
 
   const existing = card.querySelector<HTMLButtonElement>(`button[${CARD_BTN_MARK}]`)
@@ -234,7 +283,7 @@ function addTagButtonToCard(card: Element): void {
   btn.setAttribute(CARD_BTN_MARK, "1")
   btn.textContent = "Tag"
   btn.style.cssText =
-    "margin-left:6px;font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid #3ea6ff;background:#0f0f0f;color:#3ea6ff;cursor:pointer;font-weight:500;"
+    "position:absolute;bottom:8px;right:8px;font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid #3ea6ff;background:rgba(15,15,15,0.9);color:#3ea6ff;cursor:pointer;font-weight:500;z-index:10;"
   btn.type = "button"
 
   btn.addEventListener("click", (e) => {
@@ -244,20 +293,30 @@ function addTagButtonToCard(card: Element): void {
     dispatchAssign(link.href, channelName)
   })
 
-  // Inject next to channel link - try multiple parent strategies (incl. collaboration layouts)
-  const channelBlock =
-    link.closest("ytd-channel-name") ||
-    link.closest("ytd-video-meta-block") ||
-    link.closest("ytd-video-owner-renderer") ||
-    link.closest("#metadata-line")?.parentElement ||
-    link.closest("#byline-container") ||
-    link.parentElement
-  const blockEl = channelBlock as HTMLElement | null
-  if (blockEl) {
-    blockEl.style.display = "inline-flex"
-    blockEl.style.alignItems = "center"
-    blockEl.style.flexWrap = "wrap"
-    blockEl.appendChild(btn)
+  // Find thumbnail container and position button there
+  const thumbnailSelectors = [
+    "ytd-thumbnail",
+    "#thumbnail",
+    "a#thumbnail",
+    ".ytd-thumbnail",
+    "#dismissible ytd-thumbnail",
+    "#dismissible #thumbnail",
+  ]
+  let thumbnail: HTMLElement | null = null
+  for (const sel of thumbnailSelectors) {
+    thumbnail = card.querySelector(sel) as HTMLElement | null
+    if (thumbnail) break
+  }
+
+  if (thumbnail) {
+    thumbnail.style.position = "relative"
+    thumbnail.appendChild(btn)
+    card.setAttribute(CARD_MARK, "1")
+  } else {
+    // Fallback: position on the card itself
+    const cardEl = card as HTMLElement
+    cardEl.style.position = "relative"
+    cardEl.appendChild(btn)
     card.setAttribute(CARD_MARK, "1")
   }
 }
@@ -337,7 +396,7 @@ function queryAllCards(): Element[] {
 }
 
 function applyFilter(): void {
-  if (!isSubscriptionsFeed()) return
+  if (!isSubscriptionsFeed() && !isHomePage()) return
   const cards = queryAllCards()
   cards.forEach((card) => {
     const channelUrl = card.getAttribute(CHANNEL_URL_MARK)
@@ -422,7 +481,7 @@ function scanAndInject(): void {
     addTagButtonToChannelHeader()
   }
 
-  if (!isSubscriptionsFeed()) return
+  if (!isSubscriptionsFeed() && !isHomePage()) return
 
   for (const card of queryAllCards()) addTagButtonToCard(card)
 
@@ -438,7 +497,7 @@ function observeFeed(): void {
 
 function ensureAppOnSubscriptions(): void {
   const host = document.getElementById(ROOT_ID)
-  const shouldShow = isSubscriptionsFeed() || isChannelPage()
+  const shouldShow = isSubscriptionsFeed() || isChannelPage() || isHomePage()
   if (shouldShow) {
     const hostNodes = ensureHost()
     const mount = hostNodes.shadow.querySelector("div")
