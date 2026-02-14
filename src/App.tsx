@@ -67,7 +67,12 @@ async function loadData(): Promise<{
 }> {
   const area = storageArea()
   if (!area) {
-    return { tags: DEFAULT_TAGS, channelTags: {}, contentTypes: DEFAULT_CONTENT_TYPES, panelOpen: true }
+    return {
+      tags: DEFAULT_TAGS,
+      channelTags: {},
+      contentTypes: DEFAULT_CONTENT_TYPES,
+      panelOpen: true,
+    }
   }
 
   const result = await area.get([TAGS_KEY, CHANNEL_TAGS_KEY, CONTENT_TYPES_KEY, PANEL_OPEN_KEY])
@@ -79,7 +84,12 @@ async function loadData(): Promise<{
   return { tags, channelTags, contentTypes, panelOpen }
 }
 
-async function saveData(tags: Tag[], channelTags: ChannelTagMap, contentTypes: ContentTypeFilters, panelOpen?: boolean) {
+async function saveData(
+  tags: Tag[],
+  channelTags: ChannelTagMap,
+  contentTypes: ContentTypeFilters,
+  panelOpen?: boolean
+) {
   const area = storageArea()
   if (!area) return
   const data: Record<string, unknown> = {
@@ -145,7 +155,6 @@ export default function App({ portalContainer }: AppProps) {
       const assigned = channelTags[key] ?? channelTags[detail.channelUrl] ?? []
       setAssignChannel(detail)
       setAssignSelection(assigned)
-      setPanelOpen(true)
       setAssignOpen(true)
     }
 
@@ -220,151 +229,121 @@ export default function App({ portalContainer }: AppProps) {
     setAssignOpen(false)
   }
 
-  if (!panelOpen) {
-    return (
-      <button
-        type="button"
-        onClick={() => setPanelOpen(true)}
-        className="ytx-root flex items-center gap-2.5 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-2.5 text-[hsl(var(--foreground))] shadow-xl transition-opacity hover:opacity-90"
-        title="Open subscription tags"
-      >
-        <PanelRightOpen className="h-5 w-5" />
-        <span className="text-base font-medium">Tags</span>
-      </button>
-    )
-  }
-
   return (
-    <div className="ytx-root w-[320px] rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 text-[hsl(var(--foreground))] shadow-xl">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <div className="text-base font-semibold">Subscription Tags</div>
-          <div className="text-sm text-[hsl(var(--muted-foreground))]">
-            Filter your feed by channel tags
-          </div>
-        </div>
+    <>
+      {!panelOpen ? (
         <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="h-8 w-8 shrink-0 p-0"
-          onClick={() => setPanelOpen(false)}
-          title="Close panel"
+          onClick={() => setPanelOpen(true)}
+          size="lg"
+          variant="secondary"
+          className="ytx-root gap-2.5 rounded-xl shadow-xl"
+          title="Open subscription tags"
         >
-          <X className="h-5 w-5" />
+          <PanelRightOpen className="h-5 w-5" />
+          <span>Tags</span>
         </Button>
-      </div>
+      ) : (
+        <Dialog open={panelOpen} onOpenChange={setPanelOpen} modal={false}>
+          <DialogContent
+            container={portalContainer}
+            showOverlay={false}
+            className="ytx-root fixed bottom-4 right-4 left-auto top-auto translate-x-0 translate-y-0"
+          >
+            <DialogTitle>Subscription Tags</DialogTitle>
+            <DialogDescription>Filter your feed by channel tags</DialogDescription>
 
-      <div className="mb-4 flex gap-2">
-        <Dialog open={manageOpen} onOpenChange={setManageOpen} modal={false}>
-          <DialogTrigger asChild>
-            <Button size="default">Manage</Button>
-          </DialogTrigger>
-          <DialogContent container={portalContainer}>
-            <DialogTitle className="text-[18px]">Manage tags</DialogTitle>
-            <DialogDescription className="text-[14px]">Create or delete tag names.</DialogDescription>
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                <Input
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="New tag"
-                  className="text-[14px] h-10"
-                />
-                <Button onClick={createTag} size="default" className="text-[10px]">
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2.5">
-                {tags.map((tag) => (
-                  <div key={tag.id} className="flex items-center gap-1.5">
-                    <Badge className="text-[10px] px-3 py-1">{tag.name}</Badge>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 w-6 p-0 text-[10px]"
-                      onClick={() => deleteTag(tag.id)}
-                    >
-                      x
-                    </Button>
+            <div className="mb-5 flex gap-3">
+              <Dialog open={manageOpen} onOpenChange={setManageOpen} modal={false}>
+                <DialogTrigger asChild>
+                  <Button>Manage</Button>
+                </DialogTrigger>
+                <DialogContent container={portalContainer} showOverlay={false}>
+                  <DialogTitle>Manage tags</DialogTitle>
+                  <DialogDescription>Create or delete tag names.</DialogDescription>
+                  <div className="space-y-4">
+                    <div className="flex gap-3">
+                      <Input
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder="New tag"
+                      />
+                      <Button onClick={createTag}>Add</Button>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {tags.map((tag) => (
+                        <div key={tag.id} className="flex items-center gap-1">
+                          <Badge>{tag.name}</Badge>
+                          <Button size="icon" variant="ghost" onClick={() => deleteTag(tag.id)}>
+                            <X className="h-5 w-5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
+                </DialogContent>
+              </Dialog>
+              <Button variant="secondary" onClick={() => setActive([])}>
+                Reset
+              </Button>
+            </div>
+
+            <p className="mb-2 text-sm text-[hsl(var(--muted-foreground))]">
+              Active filters: {activeCount || "None"}
+            </p>
+            <div className="mb-5 flex flex-wrap gap-3">
+              {(filtered.length ? filtered : tags).map((tag) => (
+                <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
+                  <Badge variant={active.includes(tag.id) ? "active" : "default"}>{tag.name}</Badge>
+                </button>
+              ))}
+            </div>
+
+            <p className="mb-2 text-sm text-[hsl(var(--muted-foreground))]">Content:</p>
+            <div className="flex flex-wrap gap-3">
+              {(
+                [
+                  ["videos", "Videos"],
+                  ["live", "Live"],
+                  ["upcoming", "Upcoming"],
+                  ["shorts", "Shorts"],
+                ] as const
+              ).map(([key, label]) => (
+                <button type="button" key={key} onClick={() => toggleContentType(key)}>
+                  <Badge variant={contentTypes[key] ? "active" : "default"}>{label}</Badge>
+                </button>
+              ))}
             </div>
           </DialogContent>
         </Dialog>
-        <Button variant="secondary" size="default" onClick={() => setActive([])}>
-          Reset
-        </Button>
-      </div>
+      )}
 
-      <div className="mb-2 text-sm text-[hsl(var(--muted-foreground))]">
-        Active filters: {activeCount || "None"}
-      </div>
-      <div className="mb-4 flex flex-wrap gap-2.5">
-        {(filtered.length ? filtered : tags).map((tag) => (
-          <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
-            <Badge
-              variant={active.includes(tag.id) ? "active" : "default"}
-              className="cursor-pointer text-sm px-3 py-1"
-            >
-              {tag.name}
-            </Badge>
-          </button>
-        ))}
-      </div>
-
-      <div className="mb-2 text-sm text-[hsl(var(--muted-foreground))]">Content:</div>
-      <div className="mb-4 flex flex-wrap gap-2.5">
-        {(
-          [
-            ["videos", "Videos"],
-            ["live", "Live"],
-            ["upcoming", "Upcoming"],
-            ["shorts", "Shorts"],
-          ] as const
-        ).map(([key, label]) => (
-          <button type="button" key={key} onClick={() => toggleContentType(key)}>
-            <Badge variant={contentTypes[key] ? "active" : "default"} className="cursor-pointer text-sm px-3 py-1">
-              {label}
-            </Badge>
-          </button>
-        ))}
-      </div>
-
-      <Dialog open={assignOpen} onOpenChange={setAssignOpen} modal={false}>
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
         <DialogContent container={portalContainer}>
-          <DialogTitle className="text-[18px]">Add to tags</DialogTitle>
-          <DialogDescription className="text-[14px]">
+          <DialogTitle>Add to tags</DialogTitle>
+          <DialogDescription>
             {assignChannel
               ? `Channel: ${assignChannel.channelName}`
               : "Choose tags for this channel."}
           </DialogDescription>
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-2.5">
+            <div className="flex flex-wrap gap-3">
               {tags.map((tag) => (
                 <button type="button" key={tag.id} onClick={() => toggleAssign(tag.id)}>
-                  <Badge
-                    variant={assignSelection.includes(tag.id) ? "active" : "default"}
-                    className="cursor-pointer text-[10px] px-3 py-1"
-                  >
+                  <Badge variant={assignSelection.includes(tag.id) ? "active" : "default"}>
                     {tag.name}
                   </Badge>
                 </button>
               ))}
             </div>
             <div className="flex justify-end gap-3">
-              <Button variant="secondary" size="default" className="text-[10px]" onClick={() => setAssignOpen(false)}>
+              <Button variant="secondary" onClick={() => setAssignOpen(false)}>
                 Cancel
               </Button>
-              <Button size="default" className="text-[10px]" onClick={saveAssign}>
-                Save
-              </Button>
+              <Button onClick={saveAssign}>Save</Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }

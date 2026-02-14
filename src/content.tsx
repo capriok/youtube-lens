@@ -139,7 +139,7 @@ function addTagButtonToChannelHeader(): void {
 
   // Get channel name from page title or meta
   let channelName = "Channel"
-  
+
   // Try to find the channel name element using multiple strategies
   const selectors = [
     // Modern YouTube layout
@@ -200,12 +200,15 @@ function addTagButtonToChannelHeader(): void {
   }
 
   // Fallback: Insert into #page-header or contentContainer (like other extensions do)
-  const headerContainer = document.querySelector("#page-header") || document.querySelector("#contentContainer")
+  const headerContainer =
+    document.querySelector("#page-header") || document.querySelector("#contentContainer")
   if (headerContainer) {
     // Find a good spot - look for the channel info section
-    const channelInfo = headerContainer.querySelector("#channel-header-container, #inner-header-container, .page-header-view-model-wiz__page-header-headline")
+    const channelInfo = headerContainer.querySelector(
+      "#channel-header-container, #inner-header-container, .page-header-view-model-wiz__page-header-headline"
+    )
     if (channelInfo) {
-      (channelInfo as HTMLElement).style.display = "flex"
+      ;(channelInfo as HTMLElement).style.display = "flex"
       ;(channelInfo as HTMLElement).style.alignItems = "center"
       channelInfo.appendChild(btn)
       return
