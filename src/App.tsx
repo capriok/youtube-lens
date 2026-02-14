@@ -1,4 +1,4 @@
-import { PanelRightOpen, X } from "lucide-react"
+import { Edit2Icon, PanelRightOpen, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Badge } from "./components/ui/badge"
 import { Button } from "./components/ui/button"
@@ -52,6 +52,7 @@ const TAGS_KEY = "ytx_tags"
 const CHANNEL_TAGS_KEY = "ytx_channel_tags"
 const CONTENT_TYPES_KEY = "ytx_content_types"
 const PANEL_OPEN_KEY = "ytx_panel_open"
+const ACTIVE_FILTERS_KEY = "ytx_active_filters"
 
 function storageArea() {
   if (typeof chrome !== "undefined" && chrome.storage?.sync) return chrome.storage.sync
@@ -64,6 +65,7 @@ async function loadData(): Promise<{
   channelTags: ChannelTagMap
   contentTypes: ContentTypeFilters
   panelOpen: boolean
+  activeFilters: string[]
 }> {
   const area = storageArea()
   if (!area) {
@@ -72,16 +74,18 @@ async function loadData(): Promise<{
       channelTags: {},
       contentTypes: DEFAULT_CONTENT_TYPES,
       panelOpen: true,
+      activeFilters: [],
     }
   }
 
-  const result = await area.get([TAGS_KEY, CHANNEL_TAGS_KEY, CONTENT_TYPES_KEY, PANEL_OPEN_KEY])
+  const result = await area.get([TAGS_KEY, CHANNEL_TAGS_KEY, CONTENT_TYPES_KEY, PANEL_OPEN_KEY, ACTIVE_FILTERS_KEY])
   const tags = (result[TAGS_KEY] as Tag[] | undefined) ?? DEFAULT_TAGS
   const channelTags = (result[CHANNEL_TAGS_KEY] as ChannelTagMap | undefined) ?? {}
   const contentTypes =
     (result[CONTENT_TYPES_KEY] as ContentTypeFilters | undefined) ?? DEFAULT_CONTENT_TYPES
   const panelOpen = (result[PANEL_OPEN_KEY] as boolean | undefined) ?? true
-  return { tags, channelTags, contentTypes, panelOpen }
+  const activeFilters = (result[ACTIVE_FILTERS_KEY] as string[] | undefined) ?? []
+  return { tags, channelTags, contentTypes, panelOpen, activeFilters }
 }
 
 async function saveData(
@@ -141,6 +145,7 @@ export default function App({ portalContainer }: AppProps) {
       setChannelTags(data.channelTags)
       setContentTypes(data.contentTypes)
       setPanelOpen(data.panelOpen)
+      setActive(data.activeFilters)
     })
     return () => {
       mounted = false
@@ -169,6 +174,13 @@ export default function App({ portalContainer }: AppProps) {
   useEffect(() => {
     savePanelOpen(panelOpen)
   }, [panelOpen])
+
+  useEffect(() => {
+    const area = storageArea()
+    if (area) {
+      area.set({ [ACTIVE_FILTERS_KEY]: active })
+    }
+  }, [active])
 
   useEffect(() => {
     window.dispatchEvent(
@@ -236,10 +248,10 @@ export default function App({ portalContainer }: AppProps) {
           onClick={() => setPanelOpen(true)}
           size="lg"
           variant="secondary"
-          className="ytx-root gap-2.5 rounded-xl shadow-xl"
+          className="ytx-root gap-2 rounded-xl shadow-xl text-xl"
           title="Open subscription tags"
         >
-          <PanelRightOpen className="h-5 w-5" />
+          <PanelRightOpen className="size-5" />
           <span>Tags</span>
         </Button>
       ) : (
@@ -252,16 +264,37 @@ export default function App({ portalContainer }: AppProps) {
             <DialogTitle>Subscription Tags</DialogTitle>
             <DialogDescription>Filter your feed by channel tags</DialogDescription>
 
-            <div className="mb-5 flex gap-3">
+            <DialogDescription className="flex items-center gap-2 ">
+              <span>Active filters:</span>{" "}
+              <span className="font-bold ml-2">{activeCount || "None"}</span>
+              {activeCount > 0 && (
+                <Button size="icon" variant="ghost" onClick={() => setActive([])}>
+                  <X className="size-5" />
+                </Button>
+              )}
+            </DialogDescription>
+            <div className="mb-2 flex w-full items-center justify-between gap-2">
+              <div className="flex w-full flex-wrap gap-2">
+                {(filtered.length ? filtered : tags).map((tag) => (
+                  <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
+                    <Badge variant={active.includes(tag.id) ? "active" : "default"}>
+                      {tag.name}
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+
               <Dialog open={manageOpen} onOpenChange={setManageOpen} modal={false}>
                 <DialogTrigger asChild>
-                  <Button>Manage</Button>
+                  <Button size="icon" variant="ghost">
+                    <Edit2Icon className="size-5" />
+                  </Button>
                 </DialogTrigger>
                 <DialogContent container={portalContainer} showOverlay={false}>
                   <DialogTitle>Manage tags</DialogTitle>
                   <DialogDescription>Create or delete tag names.</DialogDescription>
                   <div className="space-y-4">
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                       <Input
                         value={newTag}
                         onChange={(e) => setNewTag(e.target.value)}
@@ -269,12 +302,12 @@ export default function App({ portalContainer }: AppProps) {
                       />
                       <Button onClick={createTag}>Add</Button>
                     </div>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2">
                       {tags.map((tag) => (
                         <div key={tag.id} className="flex items-center gap-1">
                           <Badge>{tag.name}</Badge>
                           <Button size="icon" variant="ghost" onClick={() => deleteTag(tag.id)}>
-                            <X className="h-5 w-5" />
+                            <X className="size-5" />
                           </Button>
                         </div>
                       ))}
@@ -282,24 +315,10 @@ export default function App({ portalContainer }: AppProps) {
                   </div>
                 </DialogContent>
               </Dialog>
-              <Button variant="secondary" onClick={() => setActive([])}>
-                Reset
-              </Button>
             </div>
 
-            <p className="mb-2 text-sm text-[hsl(var(--muted-foreground))]">
-              Active filters: {activeCount || "None"}
-            </p>
-            <div className="mb-5 flex flex-wrap gap-3">
-              {(filtered.length ? filtered : tags).map((tag) => (
-                <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
-                  <Badge variant={active.includes(tag.id) ? "active" : "default"}>{tag.name}</Badge>
-                </button>
-              ))}
-            </div>
-
-            <p className="mb-2 text-sm text-[hsl(var(--muted-foreground))]">Content:</p>
-            <div className="flex flex-wrap gap-3">
+            <DialogDescription>Content:</DialogDescription>
+            <div className="flex flex-wrap gap-2">
               {(
                 [
                   ["videos", "Videos"],
@@ -326,7 +345,7 @@ export default function App({ portalContainer }: AppProps) {
               : "Choose tags for this channel."}
           </DialogDescription>
           <div className="space-y-4">
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <button type="button" key={tag.id} onClick={() => toggleAssign(tag.id)}>
                   <Badge variant={assignSelection.includes(tag.id) ? "active" : "default"}>
@@ -335,7 +354,7 @@ export default function App({ portalContainer }: AppProps) {
                 </button>
               ))}
             </div>
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setAssignOpen(false)}>
                 Cancel
               </Button>

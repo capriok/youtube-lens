@@ -11,8 +11,8 @@ const badgeVariants = cva(
         active: "bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))]",
       },
       size: {
-        sm: "px-2.5 py-0.5 text-xs",
-        default: "px-4 py-2 text-base",
+        sm: "px-2.5 py-0.5 text-sm",
+        default: "px-4 py-2 text-lg",
       },
     },
     defaultVariants: {
