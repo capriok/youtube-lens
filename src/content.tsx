@@ -10,6 +10,7 @@ const CARD_BTN_MARK = "data-ytx-tag-button"
 const MENU_ITEM_MARK = "data-ytx-menu-item"
 const CHANNEL_URL_MARK = "data-ytx-channel-url"
 const CHANNEL_HEADER_MARK = "data-ytx-channel-header-btn"
+const FILTER_WARNING_ID = "ytx-filter-warning"
 
 let lastMenuCard: Element | null = null
 let activeFilterTags: string[] = []
@@ -393,11 +394,67 @@ function queryAllCards(): Element[] {
 
 function applyFilter(): void {
   if (!isSubscriptionsFeed()) return
+
+  // Check if all content types are disabled
+  const allContentDisabled =
+    !contentTypeFilters.shorts &&
+    !contentTypeFilters.videos &&
+    !contentTypeFilters.live &&
+    !contentTypeFilters.upcoming
+
+  // Show/hide warning message for empty filters
+  let warning = document.getElementById(FILTER_WARNING_ID)
+  if (allContentDisabled) {
+    if (!warning) {
+      warning = document.createElement("div")
+      warning.id = FILTER_WARNING_ID
+      warning.style.cssText =
+        "padding:40px;text-align:center;font-size:16px;color:#aaa;min-height:50vh;display:flex;align-items:center;justify-content:center;"
+      warning.textContent = "All content types are hidden. Enable at least one content type in the Tags panel to see videos."
+      const container =
+        document.querySelector("ytd-rich-grid-renderer") ||
+        document.querySelector("#contents") ||
+        document.querySelector("#primary")
+      if (container) {
+        container.prepend(warning)
+      }
+    }
+    warning.style.display = "flex"
+  } else if (warning) {
+    warning.style.display = "none"
+  }
+
+  // Hide/show the continuation/pagination element to prevent infinite scroll when all content is hidden
+  const continuationElements = document.querySelectorAll(
+    "ytd-continuation-item-renderer, ytd-rich-grid-renderer #continuations"
+  )
+  continuationElements.forEach((el) => {
+    ;(el as HTMLElement).style.display = allContentDisabled ? "none" : ""
+  })
+
   const cards = queryAllCards()
   cards.forEach((card) => {
     const channelUrl = card.getAttribute(CHANNEL_URL_MARK)
     const show = matchesFilter(channelUrl) && matchesContentTypeFilter(card)
     ;(card as HTMLElement).style.display = show ? "" : "none"
+  })
+
+  // Hide shorts section wrapper when shorts are filtered out
+  const shortsShelves = document.querySelectorAll("ytd-rich-shelf-renderer, ytd-reel-shelf-renderer")
+  shortsShelves.forEach((shelf) => {
+    // Check if this is a shorts shelf by looking for shorts links inside
+    const hasShortsContent = shelf.querySelector('a[href^="/shorts/"]')
+    if (hasShortsContent) {
+      const showShelf = contentTypeFilters.shorts === true
+      ;(shelf as HTMLElement).style.display = showShelf ? "" : "none"
+    }
+  })
+
+  // Hide tag buttons when tag filters are active to prevent accidental untagging
+  const tagButtons = document.querySelectorAll(`button[${CARD_BTN_MARK}]`)
+  const hasActiveTagFilters = activeFilterTags.length > 0
+  tagButtons.forEach((btn) => {
+    ;(btn as HTMLElement).style.display = hasActiveTagFilters ? "none" : ""
   })
 }
 

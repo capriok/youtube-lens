@@ -135,7 +135,7 @@ function uniqueId(base: string, existing: Tag[]) {
 
 export default function App({ portalContainer }: AppProps) {
   const [tags, setTags] = useState<Tag[]>(DEFAULT_TAGS)
-  const [active, setActive] = useState<string[]>([])
+  const [activeTag, setActiveTag] = useState<string | null>(null)
   const [newTag, setNewTag] = useState("")
   const [channelTags, setChannelTags] = useState<ChannelTagMap>({})
   const [contentTypes, setContentTypes] = useState<ContentTypeFilters>(DEFAULT_CONTENT_TYPES)
@@ -180,7 +180,9 @@ export default function App({ portalContainer }: AppProps) {
       setChannelTags(data.channelTags)
       setContentTypes(data.contentTypes)
       setPanelOpen(data.panelOpen)
-      setActive(data.activeFilters)
+      // Load single active filter (take first if array, or null)
+      const saved = data.activeFilters
+      setActiveTag(saved.length > 0 ? saved[0] : null)
     })
     return () => {
       mounted = false
@@ -210,30 +212,25 @@ export default function App({ portalContainer }: AppProps) {
   useEffect(() => {
     const area = storageArea()
     if (area) {
-      area.set({ [ACTIVE_FILTERS_KEY]: active })
+      // Save as array for backwards compatibility
+      area.set({ [ACTIVE_FILTERS_KEY]: activeTag ? [activeTag] : [] })
     }
-  }, [active])
+  }, [activeTag])
 
   useEffect(() => {
     window.dispatchEvent(
       new CustomEvent("ytx-filter-change", {
         detail: {
-          activeTags: active,
+          activeTags: activeTag ? [activeTag] : [],
           channelTags,
           contentTypes,
         },
       })
     )
-  }, [active, channelTags, contentTypes])
-
-  const activeCount = active.length
-  const filtered = useMemo(() => {
-    if (!active.length) return tags
-    return tags.filter((tag) => active.includes(tag.id))
-  }, [active, tags])
+  }, [activeTag, channelTags, contentTypes])
 
   const toggleFilter = (id: string) => {
-    setActive((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]))
+    setActiveTag((prev) => (prev === id ? null : id))
   }
 
   const toggleContentType = (key: keyof ContentTypeFilters) => {
@@ -297,28 +294,8 @@ export default function App({ portalContainer }: AppProps) {
             className="ytx-root fixed bottom-4 right-4 left-auto top-auto translate-x-0 translate-y-0"
           >
             <DialogTitle>Subscription Tags</DialogTitle>
-            <DialogDescription>Filter your feed by channel tags</DialogDescription>
-
-            <DialogDescription className="flex items-center gap-2 ">
-              <span>Active filters:</span>{" "}
-              <span className="font-bold ml-2">{activeCount || "None"}</span>
-              {activeCount > 0 && (
-                <Button size="icon" variant="ghost" onClick={() => setActive([])}>
-                  <X className="size-5" />
-                </Button>
-              )}
-            </DialogDescription>
-            <div className="flex w-full items-center justify-between gap-2">
-              <div className="flex w-full flex-wrap gap-2">
-                {(filtered.length ? filtered : tags).map((tag) => (
-                  <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
-                    <Badge variant={active.includes(tag.id) ? "active" : "default"}>
-                      {tag.name}
-                    </Badge>
-                  </button>
-                ))}
-              </div>
-
+            <div className="flex items-center justify-between w-full">
+              <DialogDescription>Filter your feed by channel tags</DialogDescription>
               <Dialog open={manageOpen} onOpenChange={setManageOpen} modal={false}>
                 <DialogTrigger asChild>
                   <Button size="icon" variant="ghost">
@@ -350,6 +327,16 @@ export default function App({ portalContainer }: AppProps) {
                   </div>
                 </DialogContent>
               </Dialog>
+            </div>
+
+            <div className="flex w-full flex-wrap gap-2">
+              {tags.map((tag) => (
+                <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
+                  <Badge variant={activeTag === tag.id ? "active" : "default"}>
+                    {tag.name}
+                  </Badge>
+                </button>
+              ))}
             </div>
 
             <DialogDescription>Content:</DialogDescription>
