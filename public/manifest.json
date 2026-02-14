@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "YT Subscriptions Tag Filter",
+  "name": "Youtube Lens",
   "version": "0.2.0",
-  "description": "Tag YouTube subscription channels and filter the subscriptions feed.",
+  "description": "Tag YouTube channels and filter your subscriptions feed.",
   "permissions": ["storage"],
   "host_permissions": ["https://www.youtube.com/*"],
   "content_scripts": [
