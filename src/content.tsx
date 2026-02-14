@@ -8,8 +8,8 @@ const ROOT_ID = "ytx-root"
 const CARD_MARK = "data-ytx-tag-btn"
 const CARD_BTN_MARK = "data-ytx-tag-button"
 const MENU_ITEM_MARK = "data-ytx-menu-item"
-const CHANNEL_BTN_MARK = "data-ytx-channel-btn"
 const CHANNEL_URL_MARK = "data-ytx-channel-url"
+const CHANNEL_HEADER_MARK = "data-ytx-channel-header-btn"
 
 let lastMenuCard: Element | null = null
 let activeFilterTags: string[] = []
@@ -31,6 +31,23 @@ function isSubscriptionsFeed(): boolean {
   return location.pathname === "/feed/subscriptions"
 }
 
+function isChannelPage(): boolean {
+  return (
+    location.pathname.startsWith("/@") ||
+    location.pathname.startsWith("/channel/") ||
+    location.pathname.startsWith("/c/")
+  )
+}
+
+function getChannelPageUrl(): string {
+  // Extract the base channel URL from the current pathname
+  const match = location.pathname.match(/^(\/@[^/]+|\/channel\/[^/]+|\/c\/[^/]+)/)
+  if (match) {
+    return location.origin + match[1]
+  }
+  return location.href
+}
+
 type HostNodes = {
   shadow: ShadowRoot
   portalContainer: HTMLElement
@@ -49,7 +66,7 @@ function ensureHost(): HostNodes {
   host.id = ROOT_ID
   host.style.position = "fixed"
   host.style.right = "16px"
-  host.style.top = "88px"
+  host.style.bottom = "16px"
   host.style.zIndex = "999999"
   document.documentElement.appendChild(host)
 
@@ -79,9 +96,7 @@ function renderApp(hostNodes: HostNodes): void {
 }
 
 function isChannelUrl(href: string): boolean {
-  return (
-    href.includes("/channel/") || href.includes("/@") || href.includes("/c/")
-  )
+  return href.includes("/channel/") || href.includes("/@") || href.includes("/c/")
 }
 
 function findChannelLink(card: Element): HTMLAnchorElement | null {
@@ -113,6 +128,91 @@ function dispatchAssign(channelUrl: string, channelName: string) {
       detail: { channelUrl, channelName },
     })
   )
+}
+
+function addTagButtonToChannelHeader(): void {
+  if (!isChannelPage()) return
+
+  // Check if button already exists
+  const existing = document.querySelector(`[${CHANNEL_HEADER_MARK}]`)
+  if (existing) return
+
+  // Get channel name from page title or meta
+  let channelName = "Channel"
+  
+  // Try to find the channel name element using multiple strategies
+  const selectors = [
+    // Modern YouTube layout
+    "ytd-c4-tabbed-header-renderer ytd-channel-name yt-formatted-string#text",
+    "ytd-c4-tabbed-header-renderer ytd-channel-name #text",
+    "#page-header ytd-channel-name yt-formatted-string",
+    "#page-header yt-dynamic-text-view-model .yt-core-attributed-string",
+    "#channel-header ytd-channel-name #text",
+    "#channel-header-container ytd-channel-name #text",
+    // Fallback to any channel name in header area
+    "ytd-c4-tabbed-header-renderer #channel-name",
+    "#page-header #channel-name",
+  ]
+
+  let channelNameEl: Element | null = null
+  for (const sel of selectors) {
+    channelNameEl = document.querySelector(sel)
+    if (channelNameEl) break
+  }
+
+  // If we found a channel name element, extract the name
+  if (channelNameEl) {
+    channelName = channelNameEl.textContent?.trim() || "Channel"
+  }
+
+  const channelUrl = getChannelPageUrl()
+
+  const btn = document.createElement("button")
+  btn.setAttribute(CHANNEL_HEADER_MARK, "1")
+  btn.textContent = "Tag"
+  btn.style.cssText =
+    "margin-left:8px;font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid #3ea6ff;background:#0f0f0f;color:#3ea6ff;cursor:pointer;font-weight:500;vertical-align:middle;"
+  btn.type = "button"
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    dispatchAssign(channelUrl, channelName)
+  })
+
+  // Try to insert next to channel name element
+  if (channelNameEl) {
+    const container = channelNameEl.closest("ytd-channel-name") as HTMLElement | null
+    if (container) {
+      container.style.display = "inline-flex"
+      container.style.alignItems = "center"
+      container.appendChild(btn)
+      return
+    }
+    // Try inserting next to the element's parent
+    const parent = channelNameEl.parentElement
+    if (parent) {
+      parent.style.display = "inline-flex"
+      parent.style.alignItems = "center"
+      parent.appendChild(btn)
+      return
+    }
+  }
+
+  // Fallback: Insert into #page-header or contentContainer (like other extensions do)
+  const headerContainer = document.querySelector("#page-header") || document.querySelector("#contentContainer")
+  if (headerContainer) {
+    // Find a good spot - look for the channel info section
+    const channelInfo = headerContainer.querySelector("#channel-header-container, #inner-header-container, .page-header-view-model-wiz__page-header-headline")
+    if (channelInfo) {
+      (channelInfo as HTMLElement).style.display = "flex"
+      ;(channelInfo as HTMLElement).style.alignItems = "center"
+      channelInfo.appendChild(btn)
+      return
+    }
+    // Last resort: just append to header
+    headerContainer.appendChild(btn)
+  }
 }
 
 function addTagButtonToCard(card: Element): void {
@@ -193,9 +293,7 @@ function getContentType(card: Element): ContentType {
     return "live"
   }
   // Upcoming: overlay-style=UPCOMING
-  if (
-    queryInCard(card, 'ytd-thumbnail-overlay-time-status-renderer[overlay-style="UPCOMING"]')
-  ) {
+  if (queryInCard(card, 'ytd-thumbnail-overlay-time-status-renderer[overlay-style="UPCOMING"]')) {
     return "upcoming"
   }
   return "video"
@@ -240,8 +338,7 @@ function applyFilter(): void {
   const cards = queryAllCards()
   cards.forEach((card) => {
     const channelUrl = card.getAttribute(CHANNEL_URL_MARK)
-    const show =
-      matchesFilter(channelUrl) && matchesContentTypeFilter(card)
+    const show = matchesFilter(channelUrl) && matchesContentTypeFilter(card)
     ;(card as HTMLElement).style.display = show ? "" : "none"
   })
 }
@@ -316,47 +413,17 @@ function injectMenuItem(): void {
   })
 }
 
-function addTagButtonToChannelHeader(): void {
-  const header =
-    document.querySelector("ytd-c4-tabbed-header-renderer") ||
-    document.querySelector("ytd-channel-video-player-renderer")
-  if (!header) return
-  if (header.querySelector(`[${CHANNEL_BTN_MARK}]`)) return
-
-  const nameEl =
-    header.querySelector<HTMLElement>("#channel-name #text") ||
-    header.querySelector<HTMLElement>("#channel-name yt-formatted-string") ||
-    header.querySelector<HTMLElement>("yt-formatted-string#text") ||
-    header.querySelector<HTMLElement>("h1.ytd-channel-name")
-  const channelName = nameEl?.textContent?.trim() || "Channel"
-
-  const buttonHost =
-    header.querySelector<HTMLElement>("#buttons") ||
-    header.querySelector<HTMLElement>("#subscribe-button")?.parentElement ||
-    header.querySelector<HTMLElement>("ytd-subscribe-button-renderer")?.parentElement
-  if (!buttonHost) return
-
-  const btn = document.createElement("button")
-  btn.setAttribute(CHANNEL_BTN_MARK, "1")
-  btn.textContent = "Add to tag"
-  btn.style.cssText =
-    "margin-left:8px;font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid #3ea6ff;background:#0f0f0f;color:#3ea6ff;cursor:pointer;font-weight:500;"
-  btn.type = "button"
-
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation()
-    e.preventDefault()
-    dispatchAssign(location.href, channelName)
-  })
-
-  buttonHost.appendChild(btn)
-}
-
 function scanAndInject(): void {
+  // Handle channel page tag button
+  if (isChannelPage()) {
+    addTagButtonToChannelHeader()
+  }
+
+  if (!isSubscriptionsFeed()) return
+
   for (const card of queryAllCards()) addTagButtonToCard(card)
 
   injectMenuItem()
-  addTagButtonToChannelHeader()
   applyFilter()
 }
 
@@ -368,7 +435,8 @@ function observeFeed(): void {
 
 function ensureAppOnSubscriptions(): void {
   const host = document.getElementById(ROOT_ID)
-  if (isSubscriptionsFeed()) {
+  const shouldShow = isSubscriptionsFeed() || isChannelPage()
+  if (shouldShow) {
     const hostNodes = ensureHost()
     const mount = hostNodes.shadow.querySelector("div")
     if (mount && !mount.hasChildNodes()) {
@@ -390,6 +458,10 @@ function init(): void {
   let lastPath = location.pathname
   const checkPath = () => {
     if (location.pathname !== lastPath) {
+      // Clean up channel header button when navigating away
+      const existingHeaderBtn = document.querySelector(`[${CHANNEL_HEADER_MARK}]`)
+      if (existingHeaderBtn) existingHeaderBtn.remove()
+
       lastPath = location.pathname
       ensureAppOnSubscriptions()
       scanAndInject()
