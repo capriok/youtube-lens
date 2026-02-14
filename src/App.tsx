@@ -276,16 +276,16 @@ export default function App({ portalContainer }: AppProps) {
   return (
     <>
       {!panelOpen ? (
-        <Button
+        <Badge
           onClick={() => setPanelOpen(true)}
-          size="lg"
-          variant="secondary"
+          size="default"
+          variant="default"
           className="ytx-root gap-2 rounded-xl shadow-xl text-xl"
           title="Open subscription tags"
         >
           <PanelRightOpen className="size-5" />
           <span>Tags</span>
-        </Button>
+        </Badge>
       ) : (
         <Dialog open={panelOpen} onOpenChange={setPanelOpen} modal={false}>
           <DialogContent
@@ -332,9 +332,7 @@ export default function App({ portalContainer }: AppProps) {
             <div className="flex w-full flex-wrap gap-2">
               {tags.map((tag) => (
                 <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
-                  <Badge variant={activeTag === tag.id ? "active" : "default"}>
-                    {tag.name}
-                  </Badge>
+                  <Badge variant={activeTag === tag.id ? "active" : "default"}>{tag.name}</Badge>
                 </button>
               ))}
             </div>
