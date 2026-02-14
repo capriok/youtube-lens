@@ -156,10 +156,10 @@ function findChannelLink(card: Element): HTMLAnchorElement | null {
   return links.length > 0 ? links[0] : null
 }
 
-function dispatchAssign(channelUrl: string, channelName: string) {
+function dispatchAssign(channelUrl: string, channelName: string, x: number, y: number) {
   window.dispatchEvent(
     new CustomEvent("ytx-open-assign", {
-      detail: { channelUrl, channelName },
+      detail: { channelUrl, channelName, x, y },
     })
   )
 }
@@ -211,7 +211,7 @@ function addTagButtonToChannelHeader(): void {
   btn.addEventListener("click", (e) => {
     e.stopPropagation()
     e.preventDefault()
-    dispatchAssign(channelUrl, channelName)
+    dispatchAssign(channelUrl, channelName, e.clientX, e.clientY)
   })
 
   // Try to insert next to channel name element
@@ -286,7 +286,7 @@ function addTagButtonToCard(card: Element): void {
     e.stopPropagation()
     e.preventDefault()
     const channelName = link.textContent?.trim() || "Channel"
-    dispatchAssign(link.href, channelName)
+    dispatchAssign(link.href, channelName, e.clientX, e.clientY)
   })
 
   // Find thumbnail container and position button there
@@ -464,7 +464,7 @@ function injectMenuItem(): void {
       const link = findChannelLink(lastMenuCard)
       if (!link) return
       const channelName = link.textContent?.trim() || "Channel"
-      dispatchAssign(link.href, channelName)
+      dispatchAssign(link.href, channelName, event.clientX, event.clientY)
     })
 
     listbox.appendChild(item)

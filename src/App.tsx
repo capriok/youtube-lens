@@ -1,5 +1,5 @@
 import { Edit2Icon, PanelRightOpen, X } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Badge } from "./components/ui/badge"
 import { Button } from "./components/ui/button"
 import {
@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from "./components/ui/dialog"
 import { Input } from "./components/ui/input"
+import { Popover, PopoverAnchor, PopoverContent } from "./components/ui/popover"
 import { normalizeChannelUrl } from "./lib/utils"
 
 type AppProps = {
@@ -41,6 +42,8 @@ const DEFAULT_CONTENT_TYPES: ContentTypeFilters = {
 type AssignDetail = {
   channelUrl: string
   channelName: string
+  x: number
+  y: number
 }
 
 const DEFAULT_TAGS: Tag[] = [
@@ -78,7 +81,13 @@ async function loadData(): Promise<{
     }
   }
 
-  const result = await area.get([TAGS_KEY, CHANNEL_TAGS_KEY, CONTENT_TYPES_KEY, PANEL_OPEN_KEY, ACTIVE_FILTERS_KEY])
+  const result = await area.get([
+    TAGS_KEY,
+    CHANNEL_TAGS_KEY,
+    CONTENT_TYPES_KEY,
+    PANEL_OPEN_KEY,
+    ACTIVE_FILTERS_KEY,
+  ])
   const tags = (result[TAGS_KEY] as Tag[] | undefined) ?? DEFAULT_TAGS
   const channelTags = (result[CHANNEL_TAGS_KEY] as ChannelTagMap | undefined) ?? {}
   const contentTypes =
@@ -135,7 +144,33 @@ export default function App({ portalContainer }: AppProps) {
   const [manageOpen, setManageOpen] = useState(false)
   const [assignOpen, setAssignOpen] = useState(false)
   const [assignChannel, setAssignChannel] = useState<AssignDetail | null>(null)
-  const [assignSelection, setAssignSelection] = useState<string[]>([])
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  // Close popover when mouse moves more than 100px away
+  useEffect(() => {
+    if (!assignOpen) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const popover = popoverRef.current
+      if (!popover) return
+
+      const rect = popover.getBoundingClientRect()
+      const distance = Math.max(
+        rect.left - e.clientX,
+        e.clientX - rect.right,
+        rect.top - e.clientY,
+        e.clientY - rect.bottom,
+        0
+      )
+
+      if (distance > 100) {
+        setAssignOpen(false)
+      }
+    }
+
+    document.addEventListener("mousemove", handleMouseMove)
+    return () => document.removeEventListener("mousemove", handleMouseMove)
+  }, [assignOpen])
 
   useEffect(() => {
     let mounted = true
@@ -156,16 +191,13 @@ export default function App({ portalContainer }: AppProps) {
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<AssignDetail>).detail
       if (!detail?.channelUrl) return
-      const key = normalizeChannelUrl(detail.channelUrl)
-      const assigned = channelTags[key] ?? channelTags[detail.channelUrl] ?? []
       setAssignChannel(detail)
-      setAssignSelection(assigned)
       setAssignOpen(true)
     }
 
     window.addEventListener("ytx-open-assign", handler)
     return () => window.removeEventListener("ytx-open-assign", handler)
-  }, [channelTags])
+  }, [])
 
   useEffect(() => {
     saveData(tags, channelTags, contentTypes)
@@ -228,18 +260,21 @@ export default function App({ portalContainer }: AppProps) {
   }
 
   const toggleAssign = (id: string) => {
-    setAssignSelection((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]))
-  }
-
-  const saveAssign = () => {
     if (!assignChannel) return
     const key = normalizeChannelUrl(assignChannel.channelUrl)
-    setChannelTags((prev) => ({
-      ...prev,
-      [key]: assignSelection,
-    }))
-    setAssignOpen(false)
+    setChannelTags((prev) => {
+      const current = prev[key] ?? []
+      const updated = current.includes(id) ? current.filter((t) => t !== id) : [...current, id]
+      return { ...prev, [key]: updated }
+    })
   }
+
+  // Get currently assigned tags for the popover
+  const assignedTags = useMemo(() => {
+    if (!assignChannel) return []
+    const key = normalizeChannelUrl(assignChannel.channelUrl)
+    return channelTags[key] ?? []
+  }, [assignChannel, channelTags])
 
   return (
     <>
@@ -273,7 +308,7 @@ export default function App({ portalContainer }: AppProps) {
                 </Button>
               )}
             </DialogDescription>
-            <div className="mb-2 flex w-full items-center justify-between gap-2">
+            <div className="flex w-full items-center justify-between gap-2">
               <div className="flex w-full flex-wrap gap-2">
                 {(filtered.length ? filtered : tags).map((tag) => (
                   <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
@@ -336,33 +371,38 @@ export default function App({ portalContainer }: AppProps) {
         </Dialog>
       )}
 
-      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-        <DialogContent container={portalContainer}>
-          <DialogTitle>Add to tags</DialogTitle>
-          <DialogDescription>
-            {assignChannel
-              ? `Channel: ${assignChannel.channelName}`
-              : "Choose tags for this channel."}
-          </DialogDescription>
+      <Popover open={assignOpen} onOpenChange={setAssignOpen}>
+        <PopoverAnchor
+          style={{
+            position: "fixed",
+            left: assignChannel?.x ?? 0,
+            top: assignChannel?.y ?? 0,
+          }}
+        />
+        <PopoverContent
+          ref={popoverRef}
+          container={portalContainer}
+          side="top"
+          align="end"
+          className="w-auto max-w-xs"
+        >
           <div className="space-y-4">
+            <p className="text-3xl font-semibold truncate">Assign Tags</p>
+            <p className="text-xl text-[hsl(var(--muted-foreground))]">
+              {assignChannel?.channelName}
+            </p>
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <button type="button" key={tag.id} onClick={() => toggleAssign(tag.id)}>
-                  <Badge variant={assignSelection.includes(tag.id) ? "active" : "default"}>
+                  <Badge variant={assignedTags.includes(tag.id) ? "active" : "default"}>
                     {tag.name}
                   </Badge>
                 </button>
               ))}
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setAssignOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={saveAssign}>Save</Button>
-            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </PopoverContent>
+      </Popover>
     </>
   )
 }
