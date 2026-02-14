@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+:host {
+  --background: 0 0% 7%;
+  --foreground: 0 0% 98%;
+  --muted: 0 0% 18%;
+  --muted-foreground: 0 0% 70%;
+  --card: 0 0% 9%;
+  --card-foreground: 0 0% 98%;
+  --border: 0 0% 20%;
+  --accent: 350 100% 55%;
+  --accent-foreground: 0 0% 100%;
+  --ring: 350 100% 55%;
+  --radius: 12px;
+}
+
+.ytx-root {
+  color-scheme: dark;
+  font-family: "Avenir", "Segoe UI", sans-serif;
+}

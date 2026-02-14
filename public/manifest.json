@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "YT Subscriptions Tag Filter",
+  "version": "0.2.0",
+  "description": "Tag YouTube subscription channels and filter the subscriptions feed.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://www.youtube.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
