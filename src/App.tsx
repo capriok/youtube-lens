@@ -396,9 +396,13 @@ export default function App({ portalContainer }: AppProps) {
                 const count = getChannelCountForTag(tag.id, channelTags)
                 return (
                   <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
-                    <Badge variant={activeTag === tag.id ? "active" : "default"}>
+                    <Badge variant={activeTag === tag.id ? "active" : "default"} className="gap-1">
                       {tag.name}
-                      {count > 0 && <span className="ml-1 opacity-70">{count}</span>}
+                      {count > 0 && (
+                        <span className="ml-1 opacity-70 text-[hsl(var(--secondary))]">
+                          {count}
+                        </span>
+                      )}
                     </Badge>
                   </button>
                 )
