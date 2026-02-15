@@ -101,7 +101,7 @@ async function saveData(
   tags: Tag[],
   channelTags: ChannelTagMap,
   contentTypes: ContentTypeFilters,
-  panelOpen?: boolean
+  panelOpen?: boolean,
 ) {
   const area = storageArea()
   if (!area) return
@@ -182,7 +182,8 @@ export default function App({ portalContainer }: AppProps) {
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [newTag, setNewTag] = useState("")
   const [channelTags, setChannelTags] = useState<ChannelTagMap>({})
-  const [contentTypes, setContentTypes] = useState<ContentTypeFilters>(DEFAULT_CONTENT_TYPES)
+  const [contentTypes, setContentTypes] =
+    useState<ContentTypeFilters>(DEFAULT_CONTENT_TYPES)
 
   const [panelOpen, setPanelOpen] = useState(true)
   const [manageOpen, setManageOpen] = useState(false)
@@ -222,7 +223,7 @@ export default function App({ portalContainer }: AppProps) {
         e.clientX - rect.right,
         rect.top - e.clientY,
         e.clientY - rect.bottom,
-        0
+        0,
       )
 
       if (distance > 100) {
@@ -287,7 +288,7 @@ export default function App({ portalContainer }: AppProps) {
           channelTags,
           contentTypes,
         },
-      })
+      }),
     )
   }, [activeTag, channelTags, contentTypes])
 
@@ -323,7 +324,9 @@ export default function App({ portalContainer }: AppProps) {
     const key = normalizeChannelUrl(assignChannel.channelUrl)
     setChannelTags((prev) => {
       const current = prev[key] ?? []
-      const updated = current.includes(id) ? current.filter((t) => t !== id) : [...current, id]
+      const updated = current.includes(id)
+        ? current.filter((t) => t !== id)
+        : [...current, id]
       return { ...prev, [key]: updated }
     })
   }
@@ -342,10 +345,10 @@ export default function App({ portalContainer }: AppProps) {
           onClick={() => setPanelOpen(true)}
           size="default"
           variant="default"
-          className="ytx-root gap-2 rounded-xl shadow-xl text-xl"
+          className="ytx-root gap-2 rounded-xl shadow-xl text-2xl"
           title="Open subscription tags"
         >
-          <PanelRightOpen className="size-5" />
+          <PanelRightOpen className="size-6" />
           <span>Tags</span>
         </Badge>
       ) : (
@@ -380,7 +383,11 @@ export default function App({ portalContainer }: AppProps) {
                       {tags.map((tag) => (
                         <div key={tag.id} className="flex items-center gap-1">
                           <Badge>{tag.name}</Badge>
-                          <Button size="icon" variant="ghost" onClick={() => deleteTag(tag.id)}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => deleteTag(tag.id)}
+                          >
                             <X className="size-5" />
                           </Button>
                         </div>
@@ -396,10 +403,13 @@ export default function App({ portalContainer }: AppProps) {
                 const count = getChannelCountForTag(tag.id, channelTags)
                 return (
                   <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
-                    <Badge variant={activeTag === tag.id ? "active" : "default"} className="gap-1">
+                    <Badge
+                      variant={activeTag === tag.id ? "active" : "default"}
+                      className="gap-1"
+                    >
                       {tag.name}
                       {count > 0 && (
-                        <span className="ml-1 opacity-70 text-[hsl(var(--secondary))]">
+                        <span className="ml-1 font-bold opacity-70 text-[hsl(var(--secondary))]">
                           {count}
                         </span>
                       )}
@@ -420,23 +430,30 @@ export default function App({ portalContainer }: AppProps) {
                 ] as const
               ).map(([key, label]) => (
                 <button type="button" key={key} onClick={() => toggleContentType(key)}>
-                  <Badge variant={contentTypes[key] ? "active" : "default"}>{label}</Badge>
+                  <Badge variant={contentTypes[key] ? "active" : "default"}>
+                    {label}
+                  </Badge>
                 </button>
               ))}
             </div>
 
-            <div className="flex gap-2 pt-2 border-t border-[hsl(var(--border))]">
-              <Button variant="secondary" size="sm" onClick={exportSettings} className="gap-1">
-                <Download className="size-4" />
+            <div className="flex gap-2 pt-6 border-t border-[hsl(var(--border))]">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={exportSettings}
+                className="gap-2"
+              >
+                <Download className="size-5" />
                 Export
               </Button>
               <Button
-                variant="secondary"
                 size="sm"
+                variant="secondary"
                 onClick={() => fileInputRef.current?.click()}
-                className="gap-1"
+                className="gap-2"
               >
-                <Upload className="size-4" />
+                <Upload className="size-5" />
                 Import
               </Button>
               <input

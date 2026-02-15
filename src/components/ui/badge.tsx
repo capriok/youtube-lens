@@ -11,7 +11,6 @@ const badgeVariants = cva(
         active: "bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))]",
       },
       size: {
-        sm: "px-2.5 py-0.5 text-sm",
         default: "px-4 py-2 text-lg",
       },
     },
@@ -19,12 +18,11 @@ const badgeVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
+  },
 )
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, size, ...props }: BadgeProps) {
   return <div className={cn(badgeVariants({ variant, size, className }))} {...props} />

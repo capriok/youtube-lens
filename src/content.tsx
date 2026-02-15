@@ -28,7 +28,12 @@ let activeFilterTags: string[] = []
 let channelTagMap: Record<string, string[]> = {}
 
 type ContentType = "shorts" | "video" | "live" | "upcoming"
-type ContentTypeFilterMap = { shorts: boolean; videos: boolean; live: boolean; upcoming: boolean }
+type ContentTypeFilterMap = {
+  shorts: boolean
+  videos: boolean
+  live: boolean
+  upcoming: boolean
+}
 
 const DEFAULT_CONTENT_TYPES: ContentTypeFilterMap = {
   shorts: true,
@@ -53,7 +58,7 @@ type TagButtonConfig = {
 
 // Colors for tag button states
 const TAG_BUTTON_COLOR_DEFAULT = "hsl(0 0% 100%)" // White
-const TAG_BUTTON_COLOR_HOVER = "hsl(204 100% 52%)" // Lighter primary blue
+const TAG_BUTTON_COLOR_HOVER = "hsl(204 100% 62%)" // Lighter primary blue
 
 const TAG_BUTTON_STYLES: Record<TagButtonVariant, string> = {
   card: `position:absolute;bottom:6px;right:6px;font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid ${TAG_BUTTON_COLOR_DEFAULT};background:rgba(15,15,15,0.9);color:${TAG_BUTTON_COLOR_DEFAULT};cursor:pointer;font-weight:500;z-index:10;transition:color 0.15s,border-color 0.15s;`,
@@ -65,7 +70,9 @@ function getTagCountForChannel(channelUrl: string): number {
   const tags =
     channelTagMap[normalized] ??
     channelTagMap[channelUrl] ??
-    Object.entries(channelTagMap).find(([k]) => normalizeChannelUrl(k) === normalized)?.[1] ??
+    Object.entries(channelTagMap).find(
+      ([k]) => normalizeChannelUrl(k) === normalized,
+    )?.[1] ??
     []
   return tags.length
 }
@@ -115,7 +122,7 @@ function createTagButton(config: TagButtonConfig): HTMLButtonElement {
 
 function updateTagButtonLabels(): void {
   const buttons = document.querySelectorAll<HTMLElement>(
-    `button[${CARD_BTN_MARK}], button[${CHANNEL_HEADER_MARK}]`
+    `button[${CARD_BTN_MARK}], button[${CHANNEL_HEADER_MARK}]`,
   )
   buttons.forEach((btn) => {
     const channelUrl = btn.getAttribute("data-channel-url")
@@ -130,7 +137,7 @@ function dispatchAssign(channelUrl: string, channelName: string, x: number, y: n
   window.dispatchEvent(
     new CustomEvent("ytx-open-assign", {
       detail: { channelUrl, channelName, x, y },
-    })
+    }),
   )
 }
 
@@ -234,7 +241,8 @@ type HostNodes = {
 function ensureHost(): HostNodes {
   const existing = document.getElementById(ROOT_ID)
   if (existing?.shadowRoot) {
-    const existingPortal = existing.shadowRoot.querySelector<HTMLElement>("[data-ytx-portal]")
+    const existingPortal =
+      existing.shadowRoot.querySelector<HTMLElement>("[data-ytx-portal]")
     if (existingPortal) {
       return { shadow: existing.shadowRoot, portalContainer: existingPortal }
     }
@@ -269,7 +277,7 @@ function renderApp(hostNodes: HostNodes): void {
   createRoot(mount).render(
     <React.StrictMode>
       <App portalContainer={hostNodes.portalContainer} />
-    </React.StrictMode>
+    </React.StrictMode>,
   )
 }
 
@@ -344,7 +352,7 @@ function addTagButtonToChannelHeader(): void {
     document.querySelector("#page-header") || document.querySelector("#contentContainer")
   if (headerContainer) {
     const channelInfo = headerContainer.querySelector(
-      "#channel-header-container, #inner-header-container, .page-header-view-model-wiz__page-header-headline"
+      "#channel-header-container, #inner-header-container, .page-header-view-model-wiz__page-header-headline",
     )
     if (channelInfo) {
       ;(channelInfo as HTMLElement).style.display = "flex"
@@ -417,7 +425,7 @@ function attachMenuTracking(): void {
 
 function injectMenuItem(): void {
   const listboxes = document.querySelectorAll(
-    "ytd-menu-popup-renderer tp-yt-paper-listbox, ytd-menu-popup-renderer paper-listbox"
+    "ytd-menu-popup-renderer tp-yt-paper-listbox, ytd-menu-popup-renderer paper-listbox",
   )
   listboxes.forEach((listbox) => {
     if (listbox.querySelector(`[${MENU_ITEM_MARK}]`)) return
@@ -477,12 +485,20 @@ function getContentType(card: Element): ContentType {
     return "shorts"
   }
   if (
-    queryInCard(card, 'ytd-thumbnail-overlay-time-status-renderer[overlay-style="LIVE"]') ||
+    queryInCard(
+      card,
+      'ytd-thumbnail-overlay-time-status-renderer[overlay-style="LIVE"]',
+    ) ||
     queryInCard(card, ".yt-badge-shape--thumbnail-live")
   ) {
     return "live"
   }
-  if (queryInCard(card, 'ytd-thumbnail-overlay-time-status-renderer[overlay-style="UPCOMING"]')) {
+  if (
+    queryInCard(
+      card,
+      'ytd-thumbnail-overlay-time-status-renderer[overlay-style="UPCOMING"]',
+    )
+  ) {
     return "upcoming"
   }
   return "video"
@@ -501,7 +517,9 @@ function matchesTagFilter(channelUrl: string | null): boolean {
   const assigned =
     channelTagMap[normalized] ??
     channelTagMap[channelUrl] ??
-    Object.entries(channelTagMap).find(([k]) => normalizeChannelUrl(k) === normalized)?.[1] ??
+    Object.entries(channelTagMap).find(
+      ([k]) => normalizeChannelUrl(k) === normalized,
+    )?.[1] ??
     []
   return assigned.some((tagId) => activeFilterTags.includes(tagId))
 }
@@ -553,7 +571,7 @@ function applyFilter(): void {
 
   // Hide/show pagination to prevent infinite scroll when all content is hidden
   const continuationElements = document.querySelectorAll(
-    "ytd-continuation-item-renderer, ytd-rich-grid-renderer #continuations"
+    "ytd-continuation-item-renderer, ytd-rich-grid-renderer #continuations",
   )
   continuationElements.forEach((el) => {
     ;(el as HTMLElement).style.display = allContentDisabled ? "none" : ""
@@ -569,7 +587,7 @@ function applyFilter(): void {
 
   // Hide shorts section wrapper when shorts are filtered out
   const shortsShelves = document.querySelectorAll(
-    "ytd-rich-shelf-renderer, ytd-reel-shelf-renderer"
+    "ytd-rich-shelf-renderer, ytd-reel-shelf-renderer",
   )
   shortsShelves.forEach((shelf) => {
     const hasShortsContent = shelf.querySelector('a[href^="/shorts/"]')
@@ -606,7 +624,7 @@ function attachFilterListener(): void {
       updateTagButtonLabels()
       applyFilter()
     },
-    { passive: true }
+    { passive: true },
   )
 }
 
