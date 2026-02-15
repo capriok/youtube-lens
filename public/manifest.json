@@ -3,6 +3,11 @@
   "name": "Youtube Lens",
   "version": "0.2.0",
   "description": "Tag YouTube channels and filter your subscriptions feed.",
+  "icons": {
+    "16": "assets/icon-16.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  },
   "permissions": ["storage"],
   "host_permissions": ["https://www.youtube.com/*"],
   "content_scripts": [
