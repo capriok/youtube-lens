@@ -133,6 +133,10 @@ function uniqueId(base: string, existing: Tag[]) {
   return `${base}-${i}`
 }
 
+function getChannelCountForTag(tagId: string, channelTags: ChannelTagMap): number {
+  return Object.values(channelTags).filter((tags) => tags.includes(tagId)).length
+}
+
 export default function App({ portalContainer }: AppProps) {
   const [tags, setTags] = useState<Tag[]>(DEFAULT_TAGS)
   const [activeTag, setActiveTag] = useState<string | null>(null)
@@ -330,11 +334,17 @@ export default function App({ portalContainer }: AppProps) {
             </div>
 
             <div className="flex w-full flex-wrap gap-2">
-              {tags.map((tag) => (
-                <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
-                  <Badge variant={activeTag === tag.id ? "active" : "default"}>{tag.name}</Badge>
-                </button>
-              ))}
+              {tags.map((tag) => {
+                const count = getChannelCountForTag(tag.id, channelTags)
+                return (
+                  <button type="button" key={tag.id} onClick={() => toggleFilter(tag.id)}>
+                    <Badge variant={activeTag === tag.id ? "active" : "default"}>
+                      {tag.name}
+                      {count > 0 && <span className="ml-1 opacity-70">{count}</span>}
+                    </Badge>
+                  </button>
+                )
+              })}
             </div>
 
             <DialogDescription>Content:</DialogDescription>
