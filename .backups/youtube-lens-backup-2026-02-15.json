@@ -1,0 +1,186 @@
+{
+  "ytx_active_filters": [],
+  "ytx_channel_tags": {
+    "https://www.youtube.com/@_johnhammond": [
+      "tech"
+    ],
+    "https://www.youtube.com/@aidailybrief": [
+      "news"
+    ],
+    "https://www.youtube.com/@aidanmx": [
+      "games"
+    ],
+    "https://www.youtube.com/@alecsteele": [
+      "hobby"
+    ],
+    "https://www.youtube.com/@alexstein99": [],
+    "https://www.youtube.com/@bballjo": [
+      "games"
+    ],
+    "https://www.youtube.com/@chrissullivan69": [],
+    "https://www.youtube.com/@clubmx": [
+      "racing"
+    ],
+    "https://www.youtube.com/@coachrobbbeams": [
+      "racing"
+    ],
+    "https://www.youtube.com/@cookseymedia": [
+      "racing"
+    ],
+    "https://www.youtube.com/@crowderbits": [
+      "news"
+    ],
+    "https://www.youtube.com/@cursor_ai": [
+      "news"
+    ],
+    "https://www.youtube.com/@davepl": [
+      "podcasts"
+    ],
+    "https://www.youtube.com/@deberti": [],
+    "https://www.youtube.com/@deegan38": [
+      "racing"
+    ],
+    "https://www.youtube.com/@drdewracing": [
+      "racing"
+    ],
+    "https://www.youtube.com/@evscape": [
+      "games"
+    ],
+    "https://www.youtube.com/@gamersnexus": [
+      "news"
+    ],
+    "https://www.youtube.com/@grindhardplumbingco": [
+      "hobby"
+    ],
+    "https://www.youtube.com/@gypsytalespodcast": [
+      "racing"
+    ],
+    "https://www.youtube.com/@hondamotorcycles": [
+      "racing"
+    ],
+    "https://www.youtube.com/@imkibitz": [
+      "games"
+    ],
+    "https://www.youtube.com/@joerogan": [
+      "podcasts"
+    ],
+    "https://www.youtube.com/@joshuafluke1": [
+      "news"
+    ],
+    "https://www.youtube.com/@legendarydrops": [
+      "games"
+    ],
+    "https://www.youtube.com/@letsgameitout": [
+      "games"
+    ],
+    "https://www.youtube.com/@lexclips": [],
+    "https://www.youtube.com/@livemotocross": [
+      "racing"
+    ],
+    "https://www.youtube.com/@motocrossaction": [
+      "racing"
+    ],
+    "https://www.youtube.com/@muscleandstrength": [
+      "news"
+    ],
+    "https://www.youtube.com/@odablock": [
+      "games"
+    ],
+    "https://www.youtube.com/@officialracertv": [
+      "racing"
+    ],
+    "https://www.youtube.com/@openai": [
+      "news"
+    ],
+    "https://www.youtube.com/@projectsimracing": [
+      "games"
+    ],
+    "https://www.youtube.com/@pulpmx": [
+      "racing"
+    ],
+    "https://www.youtube.com/@racerxillustrated": [
+      "racing"
+    ],
+    "https://www.youtube.com/@stapleton42": [
+      "hobby"
+    ],
+    "https://www.youtube.com/@startyoursystems": [
+      "games"
+    ],
+    "https://www.youtube.com/@supercrosslive": [
+      "racing"
+    ],
+    "https://www.youtube.com/@supermotocross": [
+      "racing"
+    ],
+    "https://www.youtube.com/@t3dotgg": [
+      "tech"
+    ],
+    "https://www.youtube.com/@theprimetimeagen": [
+      "tech"
+    ],
+    "https://www.youtube.com/@thespaceraceyt": [
+      "news"
+    ],
+    "https://www.youtube.com/@timcast": [
+      "news"
+    ],
+    "https://www.youtube.com/@timcastirl": [
+      "news"
+    ],
+    "https://www.youtube.com/@trackside-11": [
+      "racing"
+    ],
+    "https://www.youtube.com/@vitalmx": [
+      "racing"
+    ],
+    "https://www.youtube.com/@watercrafttalk2738": [
+      "hobby"
+    ],
+    "https://www.youtube.com/@wearechange": [
+      "news"
+    ],
+    "https://www.youtube.com/@willjum": [
+      "games"
+    ]
+  },
+  "ytx_content_types": {
+    "live": true,
+    "shorts": false,
+    "upcoming": false,
+    "videos": true
+  },
+  "ytx_panel_open": true,
+  "ytx_tags": [
+    {
+      "color": "#7a5cff",
+      "id": "racing",
+      "name": "Racing"
+    },
+    {
+      "color": "#30c4ff",
+      "id": "games",
+      "name": "Games"
+    },
+    {
+      "color": "#ff4d5a",
+      "id": "news",
+      "name": "News"
+    },
+    {
+      "color": "#ff4d5a",
+      "id": "hobby",
+      "name": "Hobby"
+    },
+    {
+      "color": "#ff4d5a",
+      "id": "tech",
+      "name": "Tech"
+    },
+    {
+      "color": "#ff4d5a",
+      "id": "podcasts",
+      "name": "Podcasts"
+    }
+  ]
+}

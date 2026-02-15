@@ -1,4 +1,4 @@
-import { Edit2Icon, PanelRightOpen, X } from "lucide-react"
+import { Download, Edit2Icon, PanelRightOpen, Upload, X } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Badge } from "./components/ui/badge"
 import { Button } from "./components/ui/button"
@@ -137,6 +137,46 @@ function getChannelCountForTag(tagId: string, channelTags: ChannelTagMap): numbe
   return Object.values(channelTags).filter((tags) => tags.includes(tagId)).length
 }
 
+async function exportSettings(): Promise<void> {
+  const area = storageArea()
+  if (!area) {
+    alert("Storage not available")
+    return
+  }
+  const data = await area.get(null) // Get all keys
+  const json = JSON.stringify(data, null, 2)
+  const blob = new Blob([json], { type: "application/json" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `youtube-lens-backup-${new Date().toISOString().slice(0, 10)}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function importSettings(file: File): Promise<Record<string, unknown> | null> {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string)
+        const area = storageArea()
+        if (!area) {
+          alert("Storage not available")
+          resolve(null)
+          return
+        }
+        await area.set(data)
+        resolve(data)
+      } catch {
+        alert("Invalid JSON file")
+        resolve(null)
+      }
+    }
+    reader.readAsText(file)
+  })
+}
+
 export default function App({ portalContainer }: AppProps) {
   const [tags, setTags] = useState<Tag[]>(DEFAULT_TAGS)
   const [activeTag, setActiveTag] = useState<string | null>(null)
@@ -149,6 +189,24 @@ export default function App({ portalContainer }: AppProps) {
   const [assignOpen, setAssignOpen] = useState(false)
   const [assignChannel, setAssignChannel] = useState<AssignDetail | null>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const data = await importSettings(file)
+    if (data) {
+      // Reload state from imported data
+      const imported = await loadData()
+      setTags(imported.tags)
+      setChannelTags(imported.channelTags)
+      setContentTypes(imported.contentTypes)
+      setPanelOpen(imported.panelOpen)
+      setActiveTag(imported.activeFilters.length > 0 ? imported.activeFilters[0] : null)
+    }
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
 
   // Close popover when mouse moves more than 100px away
   useEffect(() => {
@@ -361,6 +419,29 @@ export default function App({ portalContainer }: AppProps) {
                   <Badge variant={contentTypes[key] ? "active" : "default"}>{label}</Badge>
                 </button>
               ))}
+            </div>
+
+            <div className="flex gap-2 pt-2 border-t border-[hsl(var(--border))]">
+              <Button variant="secondary" size="sm" onClick={exportSettings} className="gap-1">
+                <Download className="size-4" />
+                Export
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-1"
+              >
+                <Upload className="size-4" />
+                Import
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImport}
+                className="hidden"
+              />
             </div>
           </DialogContent>
         </Dialog>
